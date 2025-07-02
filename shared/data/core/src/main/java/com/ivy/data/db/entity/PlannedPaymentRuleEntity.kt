@@ -20,6 +20,9 @@ data class PlannedPaymentRuleEntity(
     @SerialName("startDate")
     @Serializable(with = KSerializerInstant::class)
     val startDate: Instant?,
+    @SerialName("endDate")
+    @Serializable(with = KSerializerInstant::class)
+    val endDate: Instant? = null,
     @SerialName("intervalN")
     val intervalN: Int?,
     @SerialName("intervalType")

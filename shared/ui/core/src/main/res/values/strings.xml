@@ -88,6 +88,11 @@
     <string name="pay">Pay</string>
     <string name="get">Get</string>
     <string name="confirm_deletion">Confirm deletion</string>
+    <string name="delete_recurring_payment">Delete recurring payment</string>
+    <string name="delete_current_payment_only">Delete current payment only</string>
+    <string name="delete_all_future_payments">Delete all future payments</string>
+    <string name="delete_current_payment_description">This will only delete this single payment instance, keeping future recurring payments.</string>
+    <string name="delete_all_future_payments_description">This will delete the entire recurring payment rule and all future scheduled payments.</string>
     <string name="transaction_confirm_deletion_description">Deleting this transaction will remove it from the transaction history and update the balance accordingly.</string>
     <string name="confirm_account_change">Confirm Account Change</string>
     <string name="confirm_account_change_description">Note: You are attempting to change the account associated with the loan to an account in a different currency.\nAll loan records will be recalculated based on today’s exchange rates.</string>
@@ -110,6 +115,7 @@
     <string name="reports">Reports</string>
     <string name="loans">Loans</string>
     <string name="set_currency">Set currency</string>
+    <string name="input_currency">Input currency</string>
     <string name="no_transactions">No transactions</string>
     <string name="no_transactions_description">You don\'t have any transactions for %1$s.\nYou can add one by tapping the \"+\" button.</string>
     <string name="add_loan">Add loan</string>
@@ -335,6 +341,10 @@
     <string name="one_time">One time</string>
     <string name="multiple_times">Multiple times</string>
     <string name="starts_on">Starts on</string>
+    <string name="ends_on_optional">Ends on (optional)</string>
+    <string name="ends_on">Ends on %1$s</string>
+    <string name="add_end_date">Add end date</string>
+    <string name="remove_end_date">Remove end date</string>
     <string name="repeats_every_text">Repeats every</string>
     <string name="submit">Submit</string>
     <string name="what_do_you_need">What do you need?</string>

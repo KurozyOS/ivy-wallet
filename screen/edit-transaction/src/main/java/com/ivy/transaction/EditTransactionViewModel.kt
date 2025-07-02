@@ -645,12 +645,9 @@ class EditTransactionViewModel @Inject constructor(
 
     private fun createCategory(data: CreateCategoryData) {
         viewModelScope.launch {
-            categoryCreator.createCategory(data) {
+            categoryCreator.createCategory(data, onRefreshUI = {
                 categories = sortCategories()
-
-                // Select the newly created category
-                onCategoryChanged(it)
-            }
+            })
         }
     }
 
@@ -679,9 +676,9 @@ class EditTransactionViewModel @Inject constructor(
 
     private fun editCategory(updatedCategory: Category) {
         viewModelScope.launch {
-            categoryCreator.editCategory(updatedCategory) {
+            categoryCreator.editCategory(updatedCategory, onRefreshUI = {
                 categories = sortCategories()
-            }
+            })
         }
     }
 

@@ -26,6 +26,7 @@ import com.ivy.legacy.utils.amountToDoubleOrNull
 import com.ivy.legacy.utils.format
 import com.ivy.legacy.utils.formatInputAmount
 import com.ivy.legacy.utils.localDecimalSeparator
+import com.ivy.legacy.utils.localGroupingSeparator
 import com.ivy.legacy.utils.normalizeExpression
 import com.ivy.ui.R
 import com.ivy.wallet.ui.theme.Gray
@@ -221,9 +222,16 @@ private fun formatExpression(expression: String, currency: String): String {
 
 private fun calculate(expression: String): Double? {
     return try {
-        // Keval doesn't support negative numbers, so we add a zero in front of the expression
-        val expression = buildString {
-            for (char in expression) {
+        // Validate and sanitize expression before evaluation
+        if (!isValidExpression(expression)) {
+            return null
+        }
+        
+        val sanitizedExpression = sanitizeExpression(expression)
+        
+        // Convert calculator symbols to standard math symbols
+        val normalizedExpression = buildString {
+            for (char in sanitizedExpression) {
                 when (char) {
                     '÷' -> this.append('/')
                     '×' -> this.append('*')
@@ -232,11 +240,75 @@ private fun calculate(expression: String): Double? {
                 }
             }
         }
-        val modifiedExpression = if (expression.startsWith("-")) "0$expression" else expression
-        Keval.eval(modifiedExpression.normalizeExpression())
+        
+        val modifiedExpression = if (normalizedExpression.startsWith("-")) {
+            "0$normalizedExpression"
+        } else {
+            normalizedExpression
+        }
+        
+        val result = Keval.eval(modifiedExpression.normalizeExpression())
+        
+        // Validate result
+        when {
+            result.isNaN() || result.isInfinite() -> null
+            result > 1_000_000_000_000.0 || result < -1_000_000_000_000.0 -> null // Prevent overflow
+            else -> result
+        }
     } catch (e: Exception) {
         null
     }
+}
+
+private fun isValidExpression(expression: String): Boolean {
+    // Basic validation checks
+    if (expression.isBlank() || expression.length > 100) return false
+    
+    // Check for balanced parentheses
+    var openParens = 0
+    for (char in expression) {
+        when (char) {
+            '(' -> openParens++
+            ')' -> {
+                openParens--
+                if (openParens < 0) return false
+            }
+        }
+    }
+    if (openParens != 0) return false
+    
+    // Check for valid characters only
+    val validChars = "0123456789.()÷×−+${localDecimalSeparator()}${localGroupingSeparator()} "
+    if (!expression.all { it in validChars }) return false
+    
+    // Prevent consecutive operators (except for negative numbers)
+    val operators = "÷×−+"
+    for (i in 0 until expression.length - 1) {
+        if (expression[i] in operators && expression[i + 1] in operators) {
+            // Allow negative numbers like "5+-3" but not "5++3"
+            if (!(expression[i] == '+' && expression[i + 1] == '−')) {
+                return false
+            }
+        }
+    }
+    
+    return true
+}
+
+private fun sanitizeExpression(expression: String): String {
+    return expression
+        .trim()
+        .replace(localGroupingSeparator(), "") // Remove grouping separators
+        .replace(Regex("\\s+"), "") // Remove extra spaces
+        .let { cleaned ->
+            // Ensure expression doesn't start/end with operators (except minus for negative numbers)
+            val trimmedOperators = "÷×+"
+            var result = cleaned
+            while (result.isNotEmpty() && result.last() in trimmedOperators) {
+                result = result.dropLast(1)
+            }
+            result
+        }
 }
 
 @Preview

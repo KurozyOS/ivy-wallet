@@ -243,9 +243,9 @@ class CategoriesViewModel @Inject constructor(
     }
 
     private suspend fun createCategory(data: CreateCategoryData) {
-        categoryCreator.createCategory(data) {
+        categoryCreator.createCategory(data, onRefreshUI = {
             loadCategories()
-        }
+        })
     }
 
     override fun onEvent(event: CategoriesScreenEvent) {

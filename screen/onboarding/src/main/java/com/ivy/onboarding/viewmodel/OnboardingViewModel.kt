@@ -201,15 +201,15 @@ class OnboardingViewModel @Inject constructor(
 
     // --------------------- Accounts ---------------------------------------------------------------
     private suspend fun editAccount(account: Account, newBalance: Double) {
-        accountCreator.editAccount(account, newBalance) {
+        accountCreator.editAccount(account, newBalance, onRefreshUI = {
             _accounts.value = accountsWithBalance()
-        }
+        })
     }
 
     private suspend fun createAccount(data: CreateAccountData) {
-        accountCreator.createAccount(data) {
+        accountCreator.createAccount(data, onRefreshUI = {
             _accounts.value = accountsWithBalance()
-        }
+        })
     }
 
     private suspend fun accountsWithBalance(): ImmutableList<AccountBalance> = ioThread {
@@ -233,15 +233,15 @@ class OnboardingViewModel @Inject constructor(
 
     // ---------------------------- Categories ------------------------------------------------------
     private suspend fun editCategory(updatedCategory: Category) {
-        categoryCreator.editCategory(updatedCategory) {
+        categoryCreator.editCategory(updatedCategory, onRefreshUI = {
             _categories.value = categoryRepository.findAll().toImmutableList()
-        }
+        })
     }
 
     private suspend fun createCategory(data: CreateCategoryData) {
-        categoryCreator.createCategory(data) {
+        categoryCreator.createCategory(data, onRefreshUI = {
             _categories.value = categoryRepository.findAll().toImmutableList()
-        }
+        })
     }
 
     private suspend fun onAddCategoriesDone() {

@@ -6,6 +6,7 @@ import com.ivy.data.model.IntervalType
 import com.ivy.legacy.datamodel.Account
 import com.ivy.wallet.domain.deprecated.logic.model.CreateAccountData
 import com.ivy.wallet.domain.deprecated.logic.model.CreateCategoryData
+import com.ivy.wallet.ui.theme.modal.DeletePlannedPaymentOption
 import com.ivy.wallet.ui.theme.modal.RecurringRuleModalData
 import com.ivy.wallet.ui.theme.modal.edit.AccountModalData
 import com.ivy.wallet.ui.theme.modal.edit.CategoryModalData
@@ -14,6 +15,7 @@ import java.time.LocalDateTime
 sealed interface EditPlannedScreenEvent {
     data class OnRuleChanged(
         val startDate: LocalDateTime,
+        val endDate: LocalDateTime?,
         val oneTime: Boolean,
         val intervalN: Int?,
         val intervalType: IntervalType?
@@ -29,6 +31,7 @@ sealed interface EditPlannedScreenEvent {
 
     data class OnSave(val closeScreen: Boolean = true) : EditPlannedScreenEvent
     data object OnDelete : EditPlannedScreenEvent
+    data class OnDeleteWithOption(val option: DeletePlannedPaymentOption) : EditPlannedScreenEvent
     data class OnEditCategory(val updatedCategory: Category) : EditPlannedScreenEvent
     data class OnCreateCategory(val data: CreateCategoryData) : EditPlannedScreenEvent
     data class OnCreateAccount(val data: CreateAccountData) : EditPlannedScreenEvent

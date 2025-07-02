@@ -16,6 +16,7 @@ data class EditPlannedScreenState(
     val currency: String,
     val transactionType: TransactionType,
     val startDate: LocalDateTime?,
+    val endDate: LocalDateTime?,
     val intervalN: Int?,
     val intervalType: IntervalType?,
     val oneTime: Boolean,

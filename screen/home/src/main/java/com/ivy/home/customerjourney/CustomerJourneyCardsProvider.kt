@@ -55,29 +55,13 @@ class CustomerJourneyCardsProvider @Inject constructor(
 
     companion object {
         val ACTIVE_CARDS = listOf(
-            shutdownCard(),
             adjustBalanceCard(),
             addPlannedPaymentCard(),
             didYouKnow_pinAddTransactionWidgetCard(),
             didYouKnow_expensesPieChart(),
         )
 
-        @Suppress("MaxLineLength", "NoImplicitFunctionReturnType")
-        fun shutdownCard() = CustomerJourneyCardModel(
-            id = "shutdown",
-            condition = { _, _, _ -> true },
-            title = "Important Notice: App No Longer Maintained",
-            description = "As of Nov 5th 2024, Ivy Wallet is no longer maintained by the original developers. You may continue to use the app, but it will no longer receive updates, bug fixes, or support, and it may stop functioning at some point.",
-            cta = "Learn More",
-            ctaIcon = R.drawable.github_logo,
-            background = Gradient.solid(Red),
-            hasDismiss = true,
-            onAction = { _, _, ivyActivity ->
-                ivyActivity.openUrlInBrowser(Constants.URL_IVY_WALLET_REPO)
-            }
-        )
-
-        fun adjustBalanceCard() = CustomerJourneyCardModel(
+        fun adjustBalanceCard(): CustomerJourneyCardModel = CustomerJourneyCardModel(
             id = "adjust_balance",
             condition = { trnCount, _, _ ->
                 trnCount == 0L
@@ -93,7 +77,7 @@ class CustomerJourneyCardsProvider @Inject constructor(
             }
         )
 
-        fun addPlannedPaymentCard() = CustomerJourneyCardModel(
+        fun addPlannedPaymentCard(): CustomerJourneyCardModel = CustomerJourneyCardModel(
             id = "add_planned_payment",
             condition = { trnCount, plannedPaymentCount, _ ->
                 trnCount >= 1 && plannedPaymentCount == 0L
@@ -114,7 +98,7 @@ class CustomerJourneyCardsProvider @Inject constructor(
             }
         )
 
-        fun didYouKnow_pinAddTransactionWidgetCard() = CustomerJourneyCardModel(
+        fun didYouKnow_pinAddTransactionWidgetCard(): CustomerJourneyCardModel = CustomerJourneyCardModel(
             id = "add_transaction_widget",
             condition = { trnCount, _, _ ->
                 trnCount >= 3
@@ -130,7 +114,7 @@ class CustomerJourneyCardsProvider @Inject constructor(
             }
         )
 
-        fun didYouKnow_expensesPieChart() = CustomerJourneyCardModel(
+        fun didYouKnow_expensesPieChart(): CustomerJourneyCardModel = CustomerJourneyCardModel(
             id = "expenses_pie_chart",
             condition = { trnCount, _, _ ->
                 trnCount >= 7
@@ -146,7 +130,7 @@ class CustomerJourneyCardsProvider @Inject constructor(
             }
         )
 
-        fun rateUsCard() = CustomerJourneyCardModel(
+        fun rateUsCard(): CustomerJourneyCardModel = CustomerJourneyCardModel(
             id = "rate_us",
             condition = { trnCount, _, _ ->
                 trnCount >= 10
@@ -162,7 +146,7 @@ class CustomerJourneyCardsProvider @Inject constructor(
             }
         )
 
-        fun shareIvyWalletCard() = CustomerJourneyCardModel(
+        fun shareIvyWalletCard(): CustomerJourneyCardModel = CustomerJourneyCardModel(
             id = "share_ivy_wallet",
             condition = { trnCount, _, _ ->
                 trnCount >= 11
@@ -178,7 +162,7 @@ class CustomerJourneyCardsProvider @Inject constructor(
             }
         )
 
-        fun joinIvyTelegramCard() = CustomerJourneyCardModel(
+        fun joinIvyTelegramCard(): CustomerJourneyCardModel = CustomerJourneyCardModel(
             id = "join_ivy_telegram",
             condition = { trnCount, _, _ ->
                 trnCount >= 16
@@ -194,7 +178,7 @@ class CustomerJourneyCardsProvider @Inject constructor(
             }
         )
 
-        fun ivyWalletIsOpenSource() = CustomerJourneyCardModel(
+        fun ivyWalletIsOpenSource(): CustomerJourneyCardModel = CustomerJourneyCardModel(
             id = "open_source",
             condition = { trnCount, _, _ ->
                 trnCount >= 20
@@ -210,7 +194,7 @@ class CustomerJourneyCardsProvider @Inject constructor(
             }
         )
 
-        fun rateUsCard_2() = CustomerJourneyCardModel(
+        fun rateUsCard_2(): CustomerJourneyCardModel = CustomerJourneyCardModel(
             id = "rate_us_2",
             condition = { trnCount, _, _ ->
                 trnCount >= 22
@@ -226,7 +210,7 @@ class CustomerJourneyCardsProvider @Inject constructor(
             }
         )
 
-        fun joinTelegram2() = CustomerJourneyCardModel(
+        fun joinTelegram2(): CustomerJourneyCardModel = CustomerJourneyCardModel(
             id = "ivy_telegram_2",
             condition = { trnCount, _, _ ->
                 trnCount >= 28

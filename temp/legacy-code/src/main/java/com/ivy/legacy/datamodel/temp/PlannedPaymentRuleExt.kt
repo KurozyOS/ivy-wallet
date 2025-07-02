@@ -5,6 +5,7 @@ import com.ivy.legacy.datamodel.PlannedPaymentRule
 
 fun PlannedPaymentRuleEntity.toLegacyDomain(): PlannedPaymentRule = PlannedPaymentRule(
     startDate = startDate,
+    endDate = endDate,
     intervalN = intervalN,
     intervalType = intervalType,
     oneTime = oneTime,

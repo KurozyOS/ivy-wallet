@@ -762,9 +762,9 @@ class TransactionsViewModel @Inject constructor(
 
     private fun editCategory(updatedCategory: Category) {
         viewModelScope.launch {
-            categoryCreator.editCategory(updatedCategory) {
-                category.value = it
-            }
+            categoryCreator.editCategory(updatedCategory, onRefreshUI = {
+                category.value = updatedCategory
+            })
         }
     }
 

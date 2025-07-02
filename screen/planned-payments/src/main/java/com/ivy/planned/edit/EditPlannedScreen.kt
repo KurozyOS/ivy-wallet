@@ -40,7 +40,7 @@ import com.ivy.wallet.ui.edit.core.Title
 import com.ivy.wallet.ui.edit.core.Toolbar
 import com.ivy.wallet.ui.theme.Orange
 import com.ivy.wallet.ui.theme.components.ChangeTransactionTypeModal
-import com.ivy.wallet.ui.theme.modal.DeleteModal
+import com.ivy.wallet.ui.theme.modal.DeletePlannedPaymentModal
 import com.ivy.wallet.ui.theme.modal.ModalSet
 import com.ivy.wallet.ui.theme.modal.RecurringRuleModal
 import com.ivy.wallet.ui.theme.modal.RecurringRuleModalData
@@ -137,6 +137,7 @@ private fun BoxWithConstraintsScope.UI(
                             EditPlannedScreenEvent.OnRecurringRuleModalDataChanged(
                                 RecurringRuleModalData(
                                     initialStartDate = state.startDate,
+                                    initialEndDate = state.endDate,
                                     initialIntervalN = state.intervalN,
                                     initialIntervalType = state.intervalType,
                                     initialOneTime = state.oneTime
@@ -167,6 +168,7 @@ private fun BoxWithConstraintsScope.UI(
 
         RecurringRule(
             startDate = state.startDate,
+            endDate = state.endDate,
             intervalN = state.intervalN,
             intervalType = state.intervalType,
             oneTime = state.oneTime,
@@ -175,6 +177,7 @@ private fun BoxWithConstraintsScope.UI(
                     EditPlannedScreenEvent.OnRecurringRuleModalDataChanged(
                         RecurringRuleModalData(
                             initialStartDate = state.startDate,
+                            initialEndDate = state.endDate,
                             initialIntervalN = state.intervalN,
                             initialIntervalType = state.intervalType,
                             initialOneTime = state.oneTime
@@ -204,6 +207,7 @@ private fun BoxWithConstraintsScope.UI(
                     EditPlannedScreenEvent.OnRecurringRuleModalDataChanged(
                         RecurringRuleModalData(
                             initialStartDate = state.startDate,
+                            initialEndDate = state.endDate,
                             initialIntervalN = state.intervalN,
                             initialIntervalType = state.intervalType,
                             initialOneTime = state.oneTime
@@ -256,6 +260,7 @@ private fun BoxWithConstraintsScope.UI(
                         EditPlannedScreenEvent.OnRecurringRuleModalDataChanged(
                             RecurringRuleModalData(
                                 initialStartDate = state.startDate,
+                                initialEndDate = state.endDate,
                                 initialIntervalN = state.intervalN,
                                 initialIntervalType = state.intervalType,
                                 initialOneTime = state.oneTime
@@ -302,6 +307,7 @@ private fun BoxWithConstraintsScope.UI(
                 EditPlannedScreenEvent.OnRecurringRuleModalDataChanged(
                     RecurringRuleModalData(
                         initialStartDate = state.startDate,
+                        initialEndDate = state.endDate,
                         initialIntervalN = state.intervalN,
                         initialIntervalType = state.intervalType,
                         initialOneTime = state.oneTime
@@ -343,13 +349,12 @@ private fun BoxWithConstraintsScope.UI(
         }
     )
 
-    DeleteModal(
+    DeletePlannedPaymentModal(
         visible = state.deleteTransactionModalVisible,
-        title = stringResource(R.string.confirm_deletion),
-        description = stringResource(R.string.planned_payment_confirm_deletion_description),
+        isRecurring = !state.oneTime,
         dismiss = { onEvent(EditPlannedScreenEvent.OnDeleteTransactionModalVisible(false)) }
-    ) {
-        onEvent(EditPlannedScreenEvent.OnDelete)
+    ) { option ->
+        onEvent(EditPlannedScreenEvent.OnDeleteWithOption(option))
     }
 
     ChangeTransactionTypeModal(
@@ -369,10 +374,11 @@ private fun BoxWithConstraintsScope.UI(
 
     RecurringRuleModal(
         modal = state.recurringRuleModalData,
-        onRuleChanged = { newStartDate, newOneTime, newIntervalN, newIntervalType ->
+        onRuleChanged = { newStartDate, newEndDate, newOneTime, newIntervalN, newIntervalType ->
             onEvent(
                 EditPlannedScreenEvent.OnRuleChanged(
                     newStartDate,
+                    newEndDate,
                     newOneTime,
                     newIntervalN,
                     newIntervalType
@@ -431,6 +437,7 @@ private fun Preview() {
             EditPlannedScreenState(
                 oneTime = false,
                 startDate = null,
+                endDate = null,
                 intervalN = null,
                 intervalType = null,
                 initialTitle = "",

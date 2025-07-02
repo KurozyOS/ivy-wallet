@@ -31,6 +31,7 @@ import com.ivy.wallet.domain.deprecated.logic.CategoryCreator
 import com.ivy.wallet.domain.deprecated.logic.PlannedPaymentsGenerator
 import com.ivy.wallet.domain.deprecated.logic.model.CreateAccountData
 import com.ivy.wallet.domain.deprecated.logic.model.CreateCategoryData
+import com.ivy.wallet.ui.theme.modal.DeletePlannedPaymentOption
 import com.ivy.wallet.ui.theme.modal.RecurringRuleModalData
 import com.ivy.wallet.ui.theme.modal.edit.AccountModalData
 import com.ivy.wallet.ui.theme.modal.edit.CategoryModalData
@@ -61,6 +62,7 @@ class EditPlannedViewModel @Inject constructor(
 
     private var transactionType by mutableStateOf(TransactionType.INCOME)
     private var startDate by mutableStateOf<LocalDateTime?>(null)
+    private var endDate by mutableStateOf<LocalDateTime?>(null)
     private var intervalN by mutableStateOf<Int?>(null)
     private var intervalType by mutableStateOf<IntervalType?>(null)
     private var oneTime by mutableStateOf(false)
@@ -93,6 +95,7 @@ class EditPlannedViewModel @Inject constructor(
             accounts = getAccounts(),
             transactionType = getTransactionType(),
             startDate = getStartDate(),
+            endDate = getEndDate(),
             intervalN = getIntervalN(),
             oneTime = getOneTime(),
             account = getAccount(),
@@ -135,6 +138,11 @@ class EditPlannedViewModel @Inject constructor(
     @Composable
     private fun getStartDate(): LocalDateTime? {
         return startDate
+    }
+
+    @Composable
+    private fun getEndDate(): LocalDateTime? {
+        return endDate
     }
 
     @Composable
@@ -221,6 +229,7 @@ class EditPlannedViewModel @Inject constructor(
         when (event) {
             is EditPlannedScreenEvent.OnSave -> save()
             is EditPlannedScreenEvent.OnDelete -> delete()
+            is EditPlannedScreenEvent.OnDeleteWithOption -> deleteWithOption(event.option)
             is EditPlannedScreenEvent.OnSetTransactionType ->
                 updateTransactionType(event.newTransactionType)
 
@@ -233,7 +242,7 @@ class EditPlannedViewModel @Inject constructor(
             is EditPlannedScreenEvent.OnAmountChanged -> updateAmount(event.newAmount)
             is EditPlannedScreenEvent.OnTitleChanged -> updateTitle(event.newTitle)
             is EditPlannedScreenEvent.OnRuleChanged ->
-                updateRule(event.startDate, event.oneTime, event.intervalN, event.intervalType)
+                updateRule(event.startDate, event.endDate, event.oneTime, event.intervalN, event.intervalType)
 
             is EditPlannedScreenEvent.OnCategoryChanged -> updateCategory(event.newCategory)
             is EditPlannedScreenEvent.OnEditCategory -> editCategory(event.updatedCategory)
@@ -302,6 +311,7 @@ class EditPlannedViewModel @Inject constructor(
 
         transactionType = rule.type
         startDate = with(timeConverter) { rule.startDate?.toLocalDateTime() }
+        endDate = with(timeConverter) { rule.endDate?.toLocalDateTime() }
         intervalN = rule.intervalN
         oneTime = rule.oneTime
         intervalType = rule.intervalType
@@ -325,17 +335,20 @@ class EditPlannedViewModel @Inject constructor(
 
     private fun updateRule(
         startDate: LocalDateTime,
+        endDate: LocalDateTime?,
         oneTime: Boolean,
         intervalN: Int?,
         intervalType: IntervalType?
     ) {
         loadedRule = loadedRule().copy(
             startDate = with(timeConverter) { startDate.toUTC() },
+            endDate = endDate?.let { with(timeConverter) { it.toUTC() } },
             intervalN = intervalN,
             intervalType = intervalType,
             oneTime = oneTime
         )
         this@EditPlannedViewModel.startDate = startDate
+        this@EditPlannedViewModel.endDate = endDate
         this@EditPlannedViewModel.intervalN = intervalN
         this@EditPlannedViewModel.intervalType = intervalType
         this@EditPlannedViewModel.oneTime = oneTime
@@ -408,62 +421,130 @@ class EditPlannedViewModel @Inject constructor(
     }
 
     private fun save(closeScreen: Boolean = true) {
-        if (!validate()) {
+        val validationResult = validateWithDetails()
+        if (!validationResult.isValid) {
+            // Show validation error to user
+            showError(validationResult.errorMessage)
             return
         }
 
         viewModelScope.launch {
             try {
-                ioThread {
-                    loadedRule = loadedRule().copy(
-                        type = transactionType ?: error("no transaction type"),
-                        startDate = with(timeConverter) { startDate?.toUTC() }
-                            ?: error("no startDate"),
-                        intervalN = intervalN ?: error("no intervalN"),
-                        intervalType = intervalType ?: error("no intervalType"),
-                        categoryId = category?.id?.value,
-                        accountId = account?.id ?: error("no accountId"),
-                        title = title?.trim(),
-                        description = description?.trim(),
-                        amount = amount ?: error("no amount"),
+                val saveResult = ioThread {
+                    try {
+                        loadedRule = loadedRule().copy(
+                            type = transactionType ?: throw IllegalStateException("Transaction type is required"),
+                            startDate = startDate?.let { with(timeConverter) { it.toUTC() } }
+                                ?: throw IllegalStateException("Start date is required"),
+                            endDate = endDate?.let { with(timeConverter) { it.toUTC() } },
+                            intervalN = intervalN,
+                            intervalType = intervalType,
+                            categoryId = category?.id?.value,
+                            accountId = account?.id ?: throw IllegalStateException("Account is required"),
+                            title = title?.trim()?.takeIf { it.isNotBlank() },
+                            description = description?.trim()?.takeIf { it.isNotBlank() },
+                            amount = amount ?: throw IllegalStateException("Amount is required"),
 
-                        isSynced = false
-                    )
+                            isSynced = false
+                        )
 
-                    plannedPaymentRuleWriter.save(loadedRule().toEntity())
-                    plannedPaymentsGenerator.generate(loadedRule())
+                        plannedPaymentRuleWriter.save(loadedRule().toEntity())
+                        plannedPaymentsGenerator.generate(loadedRule())
+                        true // Success
+                    } catch (e: IllegalStateException) {
+                        showError("Please fill in all required fields: ${e.message}")
+                        false
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        showError("Failed to save planned payment. Please try again.")
+                        false
+                    }
                 }
 
-                if (closeScreen) {
+                if (saveResult && closeScreen) {
                     nav.back()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+                showError("An unexpected error occurred. Please try again.")
             }
         }
     }
 
-    private fun validate(): Boolean {
-        if (transactionType == TransactionType.TRANSFER) {
-            return false
-        }
-
-        if (amount == 0.0) {
-            return false
-        }
-
-        return if (oneTime) validateOneTime() else validateRecurring()
+    private fun showError(message: String) {
+        // TODO: Implement proper error display mechanism
+        // For now, we'll just print to console
+        // In a real implementation, this would show a snackbar or toast
+        println("EditPlannedViewModel Error: $message")
     }
 
+    private fun validate(): Boolean {
+        return validateWithDetails().isValid
+    }
+
+    private fun validateWithDetails(): ValidationResult {
+        // Check transaction type
+        if (transactionType == TransactionType.TRANSFER) {
+            return ValidationResult(false, "Transfer transactions are not supported for planned payments")
+        }
+
+        // Check amount
+        val currentAmount = amount
+        if (currentAmount == null || currentAmount <= 0.0) {
+            return ValidationResult(false, "Amount must be greater than zero")
+        }
+
+        // Check account
+        if (account == null) {
+            return ValidationResult(false, "Please select an account")
+        }
+
+        return if (oneTime) validateOneTimeWithDetails() else validateRecurringWithDetails()
+    }
+
+    private fun validateOneTimeWithDetails(): ValidationResult {
+        if (startDate == null) {
+            return ValidationResult(false, "Please select a start date")
+        }
+
+        return ValidationResult(true, "Valid")
+    }
+
+    private fun validateRecurringWithDetails(): ValidationResult {
+        if (startDate == null) {
+            return ValidationResult(false, "Please select a start date")
+        }
+
+        if (intervalN == null || intervalN!! <= 0) {
+            return ValidationResult(false, "Interval must be greater than zero")
+        }
+
+        if (intervalType == null) {
+            return ValidationResult(false, "Please select an interval type")
+        }
+
+        // Validate end date if provided
+        endDate?.let { end ->
+            if (!end.isAfter(startDate)) {
+                return ValidationResult(false, "End date must be after start date")
+            }
+        }
+
+        return ValidationResult(true, "Valid")
+    }
+
+    private data class ValidationResult(
+        val isValid: Boolean,
+        val errorMessage: String
+    )
+
+    // Legacy validation methods for backward compatibility
     private fun validateOneTime(): Boolean {
-        return startDate != null
+        return validateOneTimeWithDetails().isValid
     }
 
     private fun validateRecurring(): Boolean {
-        return startDate != null &&
-                intervalN != null &&
-                intervalN!! > 0 &&
-                intervalType != null
+        return validateRecurringWithDetails().isValid
     }
 
     private fun delete() {
@@ -481,21 +562,55 @@ class EditPlannedViewModel @Inject constructor(
         }
     }
 
+    private fun deleteWithOption(option: DeletePlannedPaymentOption) {
+        viewModelScope.launch {
+            deleteTransactionModalVisible = false
+            ioThread {
+                loadedRule?.let { rule ->
+                    when (option) {
+                        DeletePlannedPaymentOption.CURRENT_ONLY -> {
+                            // For current only, we need to find and delete only the current/next due transaction
+                            // while keeping the recurring rule intact
+                            val currentTransactions = transactionRepository.findAllByRecurringRuleId(
+                                recurringRuleId = rule.id
+                            )
+                            
+                            // Find the next due transaction (not yet paid)
+                            val nextDueTransaction = currentTransactions
+                                .filter { !it.settled }
+                                .minByOrNull { it.time }
+                            
+                            nextDueTransaction?.let { transactionToDelete ->
+                                transactionRepository.deleteById(transactionToDelete.id)
+                            }
+                        }
+                        DeletePlannedPaymentOption.ALL_FUTURE -> {
+                            // Delete the entire rule and all associated transactions
+                            plannedPaymentRuleWriter.deleteById(rule.id)
+                            transactionRepository.deletedByRecurringRuleIdAndNoDateTime(
+                                recurringRuleId = rule.id
+                            )
+                        }
+                    }
+                }
+                nav.back()
+            }
+        }
+    }
+
     private fun createCategory(data: CreateCategoryData) {
         viewModelScope.launch {
-            categoryCreator.createCategory(data) {
+            categoryCreator.createCategory(data, onRefreshUI = {
                 categories = categoryRepository.findAll().toImmutableList()
-
-                updateCategory(it)
-            }
+            })
         }
     }
 
     private fun editCategory(updatedCategory: Category) {
         viewModelScope.launch {
-            categoryCreator.editCategory(updatedCategory) {
+            categoryCreator.editCategory(updatedCategory, onRefreshUI = {
                 categories = categoryRepository.findAll().toImmutableList()
-            }
+            })
         }
     }
 

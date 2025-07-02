@@ -4,6 +4,7 @@ import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraintsScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,6 +53,7 @@ import com.ivy.ui.R
 import com.ivy.wallet.ui.theme.Gradient
 import com.ivy.wallet.ui.theme.GradientIvy
 import com.ivy.wallet.ui.theme.Gray
+import com.ivy.wallet.ui.theme.Orange
 import com.ivy.wallet.ui.theme.White
 import com.ivy.wallet.ui.theme.components.IntervalPickerRow
 import com.ivy.wallet.ui.theme.components.IvyCircleButton
@@ -65,6 +67,7 @@ import java.util.UUID
 @Deprecated("Old design system. Use `:ivy-design` and Material3")
 data class RecurringRuleModalData(
     val initialStartDate: LocalDateTime?,
+    val initialEndDate: LocalDateTime? = null,
     val initialIntervalN: Int?,
     val initialIntervalType: IntervalType?,
     val initialOneTime: Boolean = false,
@@ -78,11 +81,14 @@ fun BoxWithConstraintsScope.RecurringRuleModal(
     modal: RecurringRuleModalData?,
 
     dismiss: () -> Unit,
-    onRuleChanged: (LocalDateTime, oneTime: Boolean, Int?, IntervalType?) -> Unit,
+    onRuleChanged: (LocalDateTime, LocalDateTime?, oneTime: Boolean, Int?, IntervalType?) -> Unit,
 ) {
     val timeProvider = LocalTimeProvider.current
     var startDate by remember(modal) {
         mutableStateOf(modal?.initialStartDate ?: timeProvider.localNow())
+    }
+    var endDate by remember(modal) {
+        mutableStateOf(modal?.initialEndDate)
     }
     var oneTime by remember(modal) {
         mutableStateOf(modal?.initialOneTime ?: false)
@@ -109,6 +115,7 @@ fun BoxWithConstraintsScope.RecurringRuleModal(
                 dismiss()
                 onRuleChanged(
                     startDate,
+                    endDate,
                     oneTime,
                     intervalN,
                     intervalType
@@ -142,6 +149,7 @@ fun BoxWithConstraintsScope.RecurringRuleModal(
         } else {
             MultipleTimes(
                 startDate = startDate,
+                endDate = endDate,
                 intervalN = intervalN,
                 intervalType = intervalType,
 
@@ -149,6 +157,9 @@ fun BoxWithConstraintsScope.RecurringRuleModal(
 
                 onSetStartDate = {
                     startDate = it
+                },
+                onSetEndDate = {
+                    endDate = it
                 },
                 onSetIntervalN = {
                     intervalN = it
@@ -251,12 +262,14 @@ private fun OneTime(
 @Composable
 private fun MultipleTimes(
     startDate: LocalDateTime,
+    endDate: LocalDateTime?,
     intervalN: Int,
     intervalType: IntervalType,
 
     modalScrollState: ScrollState,
 
     onSetStartDate: (LocalDateTime) -> Unit,
+    onSetEndDate: (LocalDateTime?) -> Unit,
     onSetIntervalN: (Int) -> Unit,
     onSetIntervalType: (IntervalType) -> Unit
 ) {
@@ -276,6 +289,62 @@ private fun MultipleTimes(
 
     DateRow(dateTime = startDate) {
         onSetStartDate(it)
+    }
+
+    Spacer(Modifier.height(32.dp))
+
+    Text(
+        modifier = Modifier
+            .padding(start = 32.dp),
+        text = stringResource(R.string.ends_on_optional),
+        style = UI.typo.b2.style(
+            color = UI.colors.pureInverse,
+            fontWeight = FontWeight.ExtraBold
+        )
+    )
+
+    Spacer(Modifier.height(12.dp))
+
+    if (endDate != null) {
+        DateRow(dateTime = endDate) {
+            onSetEndDate(it)
+        }
+        
+        Spacer(Modifier.height(12.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                modifier = Modifier
+                    .clip(UI.shapes.r3)
+                    .clickable { onSetEndDate(null) }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                text = stringResource(R.string.remove_end_date),
+                style = UI.typo.c.style(
+                    color = Orange,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            )
+        }
+    } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                modifier = Modifier
+                    .clip(UI.shapes.r3)
+                    .clickable { onSetEndDate(startDate.plusMonths(12)) }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                text = stringResource(R.string.add_end_date),
+                style = UI.typo.c.style(
+                    color = UI.colors.pureInverse,
+                    fontWeight = FontWeight.ExtraBold
+                )
+            )
+        }
     }
 
     Spacer(Modifier.height(32.dp))
@@ -413,7 +482,7 @@ private fun Preview_oneTime() {
                     initialOneTime = true
                 ),
                 dismiss = {},
-                onRuleChanged = { _, _, _, _ -> }
+                onRuleChanged = { _, _, _, _, _ -> }
             )
         }
     }
@@ -432,7 +501,7 @@ private fun Preview_multipleTimes() {
                     initialOneTime = false
                 ),
                 dismiss = {},
-                onRuleChanged = { _, _, _, _ -> }
+                onRuleChanged = { _, _, _, _, _ -> }
             )
         }
     }

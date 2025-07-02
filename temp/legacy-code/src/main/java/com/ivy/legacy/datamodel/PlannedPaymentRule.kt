@@ -11,6 +11,7 @@ import java.util.UUID
 @Immutable
 data class PlannedPaymentRule(
     val startDate: Instant?,
+    val endDate: Instant? = null,
     val intervalN: Int?,
     val intervalType: IntervalType?,
     val oneTime: Boolean,
@@ -29,6 +30,7 @@ data class PlannedPaymentRule(
 ) {
     fun toEntity(): PlannedPaymentRuleEntity = PlannedPaymentRuleEntity(
         startDate = startDate,
+        endDate = endDate,
         intervalN = intervalN,
         intervalType = intervalType,
         oneTime = oneTime,

@@ -7,6 +7,7 @@ import com.ivy.legacy.datamodel.PlannedPaymentRule
 import com.ivy.legacy.datamodel.temp.toDomain
 import com.ivy.legacy.incrementDate
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 class PlannedPaymentsGenerator @Inject constructor(
@@ -15,25 +16,44 @@ class PlannedPaymentsGenerator @Inject constructor(
 ) {
     companion object {
         private const val GENERATED_INSTANCES_LIMIT = 72
+        // 3 years in seconds (more readable than magic number)
+        private const val DEFAULT_END_DATE_OFFSET_SECONDS = 3L * 365L * 24L * 60L * 60L
     }
 
     suspend fun generate(rule: PlannedPaymentRule) {
-        // delete all not happened transactions
-        transactionRepository.deletedByRecurringRuleIdAndNoDateTime(
-            recurringRuleId = rule.id
-        )
+        try {
+            // Validate rule before processing
+            if (!isValidRule(rule)) {
+                return
+            }
 
-        if (rule.oneTime) {
-            generateOneTime(rule)
-        } else {
-            generateRecurring(rule)
+            // Delete all unpaid transactions for this rule to regenerate them
+            transactionRepository.deletedByRecurringRuleIdAndNoDateTime(
+                recurringRuleId = rule.id
+            )
+
+            if (rule.oneTime) {
+                generateOneTime(rule)
+            } else {
+                generateRecurring(rule)
+            }
+        } catch (e: Exception) {
+            // Log error but don't crash the app
+            e.printStackTrace()
         }
     }
 
-    private suspend fun generateOneTime(rule: PlannedPaymentRule) {
-        val trns = transactionRepository.findAllByRecurringRuleId(recurringRuleId = rule.id)
+    private fun isValidRule(rule: PlannedPaymentRule): Boolean {
+        return rule.startDate != null &&
+                rule.amount > 0 &&
+                (rule.oneTime || (rule.intervalN != null && rule.intervalN!! > 0 && rule.intervalType != null))
+    }
 
-        if (trns.isEmpty()) {
+    private suspend fun generateOneTime(rule: PlannedPaymentRule) {
+        val existingTransactions = transactionRepository.findAllByRecurringRuleId(recurringRuleId = rule.id)
+        
+        // Only generate if no transactions exist for this rule
+        if (existingTransactions.isEmpty()) {
             generateTransaction(rule, rule.startDate!!)
         }
     }
@@ -41,31 +61,36 @@ class PlannedPaymentsGenerator @Inject constructor(
     @Suppress("MagicNumber")
     private suspend fun generateRecurring(rule: PlannedPaymentRule) {
         val startDate = rule.startDate!!
-        val endDate = startDate.plusSeconds(94_608_000)
+        val endDate = rule.endDate ?: startDate.plusSeconds(DEFAULT_END_DATE_OFFSET_SECONDS)
+        
+        // Validate end date is after start date
+        if (!endDate.isAfter(startDate)) {
+            return
+        }
 
-        val trns = transactionRepository.findAllByRecurringRuleId(recurringRuleId = rule.id)
-        var trnsToSkip = trns.size
+        val existingTransactions = transactionRepository.findAllByRecurringRuleId(recurringRuleId = rule.id)
+        val existingDueDates = existingTransactions
+            .filter { !it.settled } // Only consider unsettled transactions
+            .mapNotNull { it.time } // Get due dates
+            .toSet()
 
         var generatedTransactions = 0
-
         var date = startDate
-        while (date.isBefore(endDate)) {
-            if (generatedTransactions >= GENERATED_INSTANCES_LIMIT) {
-                break
+
+        while (date.isBefore(endDate) && generatedTransactions < GENERATED_INSTANCES_LIMIT) {
+            // Check if a transaction for this due date already exists
+            val dateRounded = date.truncatedTo(ChronoUnit.DAYS)
+            if (!existingDueDates.contains(dateRounded)) {
+                try {
+                    generateTransaction(rule, date)
+                    generatedTransactions++
+                } catch (e: Exception) {
+                    // Log error for this specific transaction but continue with others
+                    e.printStackTrace()
+                }
             }
 
-            if (trnsToSkip > 0) {
-                // skip first N happened transactions
-                trnsToSkip--
-            } else {
-                // generate transaction
-                generateTransaction(
-                    rule = rule,
-                    dueDate = date
-                )
-                generatedTransactions++
-            }
-
+            // Calculate next occurrence
             val intervalN = rule.intervalN!!.toLong()
             date = rule.intervalType!!.incrementDate(
                 date = date,
@@ -75,7 +100,7 @@ class PlannedPaymentsGenerator @Inject constructor(
     }
 
     private suspend fun generateTransaction(rule: PlannedPaymentRule, dueDate: Instant) {
-        Transaction(
+        val transaction = Transaction(
             type = rule.type,
             accountId = rule.accountId,
             recurringRuleId = rule.id,
@@ -87,8 +112,13 @@ class PlannedPaymentsGenerator @Inject constructor(
             dateTime = null,
             toAccountId = null,
             isSynced = false
-        ).toDomain(transactionMapper)?.let {
-            transactionRepository.save(it)
+        )
+
+        val domainTransaction = transaction.toDomain(transactionMapper)
+        if (domainTransaction != null) {
+            transactionRepository.save(domainTransaction)
+        } else {
+            throw IllegalStateException("Failed to convert transaction to domain model for rule ${rule.id}")
         }
     }
 }

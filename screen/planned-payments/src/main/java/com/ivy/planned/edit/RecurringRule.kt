@@ -35,6 +35,7 @@ import java.time.LocalDateTime
 @Composable
 fun RecurringRule(
     startDate: LocalDateTime?,
+    endDate: LocalDateTime?,
     intervalN: Int?,
     intervalType: IntervalType?,
     oneTime: Boolean,
@@ -50,6 +51,7 @@ fun RecurringRule(
     ) {
         RecurringRuleCard(
             startDate = startDate!!,
+            endDate = endDate,
             intervalN = intervalN,
             intervalType = intervalType,
             oneTime = oneTime,
@@ -79,6 +81,7 @@ fun hasRecurringRule(
 @Composable
 private fun RecurringRuleCard(
     startDate: LocalDateTime,
+    endDate: LocalDateTime?,
     intervalN: Int?,
     intervalType: IntervalType?,
     oneTime: Boolean,
@@ -120,6 +123,18 @@ private fun RecurringRuleCard(
                         color = Orange
                     )
                 )
+
+                if (endDate != null) {
+                    Spacer(Modifier.height(4.dp))
+
+                    Text(
+                        text = stringResource(R.string.ends_on, endDate.toLocalDate().formatDateOnly()),
+                        style = UI.typo.c.style(
+                            fontWeight = FontWeight.ExtraBold,
+                            color = UI.colors.pureInverse
+                        )
+                    )
+                }
             }
         }
 
@@ -142,6 +157,7 @@ private fun Preview_Empty() {
     IvyWalletComponentPreview {
         RecurringRule(
             startDate = null,
+            endDate = null,
             intervalN = null,
             intervalType = null,
             oneTime = true
@@ -156,6 +172,7 @@ private fun Preview_Repeat() {
     IvyWalletComponentPreview {
         RecurringRule(
             startDate = timeNowUTC(),
+            endDate = timeNowUTC().plusMonths(12),
             intervalN = 1,
             intervalType = IntervalType.MONTH,
             oneTime = false
@@ -170,6 +187,7 @@ private fun Preview_OneTime() {
     IvyWalletComponentPreview {
         RecurringRule(
             startDate = timeNowUTC().plusDays(5),
+            endDate = null,
             intervalN = null,
             intervalType = null,
             oneTime = true
