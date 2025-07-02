@@ -336,7 +336,7 @@ private fun MultipleTimes(
             Text(
                 modifier = Modifier
                     .clip(UI.shapes.r3)
-                    .clickable { onSetEndDate(startDate.plusMonths(12)) }
+                    .clickable { onSetEndDate(startDate.plusMonths(3)) }
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 text = stringResource(R.string.add_end_date),
                 style = UI.typo.c.style(

@@ -109,14 +109,15 @@ fun BoxWithConstraintsScope.MultiCurrencyAmountModal(
                         )
                     }
                     convertedAmount = converted
+                } else {
+                    convertedAmount = null
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 convertedAmount = null
             }
-        } else if (inputCurrency == targetCurrency) {
-            convertedAmount = amount.amountToDoubleOrNull()
         } else {
+            // No conversion needed when currencies are the same or amount is blank
             convertedAmount = null
         }
     }
@@ -147,8 +148,10 @@ fun BoxWithConstraintsScope.MultiCurrencyAmountModal(
             ) {
                 try {
                     val finalAmount = if (inputCurrency == targetCurrency) {
+                        // No conversion needed - use the original amount
                         amount.amountToDouble()
                     } else {
+                        // Use converted amount if available, otherwise original amount
                         convertedAmount ?: amount.amountToDouble()
                     }
                     onAmountChanged(finalAmount, inputCurrency)

@@ -29,6 +29,7 @@ import com.ivy.ui.ComposeViewModel
 import com.ivy.wallet.domain.action.account.AccountsAct
 import com.ivy.wallet.domain.deprecated.logic.CategoryCreator
 import com.ivy.wallet.domain.deprecated.logic.PlannedPaymentsGenerator
+import com.ivy.wallet.domain.deprecated.logic.currency.ExchangeRatesLogic
 import com.ivy.wallet.domain.deprecated.logic.model.CreateAccountData
 import com.ivy.wallet.domain.deprecated.logic.model.CreateCategoryData
 import com.ivy.wallet.ui.theme.modal.DeletePlannedPaymentOption
@@ -58,6 +59,7 @@ class EditPlannedViewModel @Inject constructor(
     private val plannedPaymentRuleWriter: WritePlannedPaymentRuleDao,
     private val transactionRepository: TransactionRepository,
     private val timeConverter: TimeConverter,
+    val exchangeRatesLogic: ExchangeRatesLogic,
 ) : ComposeViewModel<EditPlannedScreenState, EditPlannedScreenEvent>() {
 
     private var transactionType by mutableStateOf(TransactionType.INCOME)

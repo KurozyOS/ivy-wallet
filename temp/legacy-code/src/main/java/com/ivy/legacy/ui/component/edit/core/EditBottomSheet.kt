@@ -84,8 +84,9 @@ import com.ivy.wallet.ui.theme.findContrastTextColor
 import com.ivy.wallet.ui.theme.modal.DURATION_MODAL_ANIM
 import com.ivy.wallet.ui.theme.modal.ModalSave
 import com.ivy.wallet.ui.theme.modal.ModalSet
-import com.ivy.wallet.ui.theme.modal.edit.AmountModal
+import com.ivy.wallet.ui.theme.modal.edit.MultiCurrencyAmountModal
 import com.ivy.wallet.ui.theme.toComposeColor
+import com.ivy.wallet.domain.deprecated.logic.currency.ExchangeRatesLogic
 import kotlinx.coroutines.launch
 import java.util.Locale
 import java.util.UUID
@@ -115,6 +116,8 @@ fun BoxWithConstraintsScope.EditBottomSheet(
     modifier: Modifier = Modifier, // Modifier comes after other parameters
     convertedAmount: Double? = null,
     convertedAmountCurrencyCode: String? = null,
+    baseCurrency: String,
+    exchangeRatesLogic: ExchangeRatesLogic,
 ) {
     val rootView = LocalView.current
     var keyboardShown by remember { mutableStateOf(false) }
@@ -276,10 +279,12 @@ fun BoxWithConstraintsScope.EditBottomSheet(
     val amountModalId = remember(initialTransactionId, amount) {
         UUID.randomUUID()
     }
-    AmountModal(
+    MultiCurrencyAmountModal(
         id = amountModalId,
         visible = amountModalShown,
-        currency = currency,
+        baseCurrency = baseCurrency,
+        targetCurrency = currency,
+        initialCurrency = currency,
         initialAmount = amount.takeIf { it > 0 },
         Header = {
             Spacer(Modifier.height(24.dp))
@@ -304,11 +309,14 @@ fun BoxWithConstraintsScope.EditBottomSheet(
             )
         },
         amountSpacerTop = 48.dp,
+        exchangeRatesLogic = exchangeRatesLogic,
         dismiss = {
             setAmountModalShown(false)
         }
-    ) {
-        onAmountChanged(it)
+    ) { finalAmount, selectedCurrency ->
+        // For now, we'll only use the converted amount and ignore the selected currency
+        // This maintains compatibility with existing code
+        onAmountChanged(finalAmount)
     }
 }
 
@@ -791,79 +799,85 @@ private fun LabelAccountMini(
     }
 }
 
-@Preview
-@Composable
-private fun Preview() {
-    IvyWalletPreview {
-        val acc1 = Account("Cash", color = Green.toArgb())
+// TODO: Fix preview with proper mock ExchangeRatesLogic
+// @Preview
+// @Composable
+// private fun Preview() {
+//     IvyWalletPreview {
+//         val acc1 = Account("Cash", color = Green.toArgb())
+//
+//         BoxWithConstraints(
+//             modifier = Modifier
+//                 .fillMaxSize()
+//         ) {
+//             EditBottomSheet(
+//                 amountModalShown = false,
+//                 setAmountModalShown = {},
+//                 initialTransactionId = null,
+//                 type = TransactionType.INCOME,
+//                 ActionButton = {
+//                     ModalSet {
+//                     }
+//                 },
+//                 accounts = listOf(
+//                     acc1,
+//                     Account("DSK", color = GreenDark.toArgb()),
+//                     Account("phyre", color = GreenLight.toArgb()),
+//                     Account("Revolut", color = IvyDark.toArgb()),
+//                 ),
+//                 selectedAccount = acc1,
+//                 toAccount = null,
+//                 amount = 12350.0,
+//                 currency = "BGN",
+//                 baseCurrency = "BGN",
+//                 exchangeRatesLogic = TODO("Mock ExchangeRatesLogic for preview"),
+//                 onAmountChanged = {},
+//                 onSelectedAccountChanged = {},
+//                 onToAccountChanged = {},
+//                 onAddNewAccount = {}
+//             )
+//         }
+//     }
+// }
 
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            EditBottomSheet(
-                amountModalShown = false,
-                setAmountModalShown = {},
-                initialTransactionId = null,
-                type = TransactionType.INCOME,
-                ActionButton = {
-                    ModalSet {
-                    }
-                },
-                accounts = listOf(
-                    acc1,
-                    Account("DSK", color = GreenDark.toArgb()),
-                    Account("phyre", color = GreenLight.toArgb()),
-                    Account("Revolut", color = IvyDark.toArgb()),
-                ),
-                selectedAccount = acc1,
-                toAccount = null,
-                amount = 12350.0,
-                currency = "BGN",
-                onAmountChanged = {},
-                onSelectedAccountChanged = {},
-                onToAccountChanged = {},
-                onAddNewAccount = {}
-            )
-        }
-    }
-}
-
-@Preview
-@Composable
-private fun Preview_Transfer() {
-    IvyWalletPreview {
-        val acc1 = Account("Cash", color = Green.toArgb())
-        val acc2 = Account("DSK", color = GreenDark.toArgb())
-
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            EditBottomSheet(
-                amountModalShown = false,
-                setAmountModalShown = {},
-                initialTransactionId = UUID.randomUUID(),
-                ActionButton = {
-                    ModalSave {
-                    }
-                },
-                type = TransactionType.TRANSFER,
-                accounts = listOf(
-                    acc1,
-                    acc2,
-                    Account("phyre", color = GreenLight.toArgb(), icon = "cash"),
-                    Account("Revolut", color = IvyDark.toArgb()),
-                ),
-                selectedAccount = acc1,
-                toAccount = acc2,
-                amount = 12350.0,
-                currency = "BGN",
-                onAmountChanged = {},
-                onSelectedAccountChanged = {},
-                onToAccountChanged = {},
-                onAddNewAccount = {}
-            )
-        }
-    }
-}
+// TODO: Fix preview with proper mock ExchangeRatesLogic
+// @Preview
+// @Composable
+// private fun Preview_Transfer() {
+//     IvyWalletPreview {
+//         val acc1 = Account("Cash", color = Green.toArgb())
+//         val acc2 = Account("DSK", color = GreenDark.toArgb())
+//
+//         BoxWithConstraints(
+//             modifier = Modifier
+//                 .fillMaxSize()
+//         ) {
+//             EditBottomSheet(
+//                 amountModalShown = false,
+//                 setAmountModalShown = {},
+//                 initialTransactionId = UUID.randomUUID(),
+//                 ActionButton = {
+//                     ModalSave {
+//                     }
+//                 },
+//                 type = TransactionType.TRANSFER,
+//                 accounts = listOf(
+//                     acc1,
+//                     acc2,
+//                     Account("phyre", color = GreenLight.toArgb(), icon = "cash"),
+//                     Account("Revolut", color = IvyDark.toArgb()),
+//                 ),
+//                 selectedAccount = acc1,
+//                 toAccount = acc2,
+//                 amount = 12350.0,
+//                 currency = "BGN",
+//                 baseCurrency = "BGN",
+//                 exchangeRatesLogic = TODO("Mock ExchangeRatesLogic for preview"),
+//                 onAmountChanged = {},
+//                 onSelectedAccountChanged = {},
+//                 onToAccountChanged = {},
+//                 onAddNewAccount = {}
+//             )
+//         }
+//     }
+// }

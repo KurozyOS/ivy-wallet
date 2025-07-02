@@ -89,7 +89,7 @@ class EditTransactionViewModel @Inject constructor(
     private val settingsDao: SettingsDao,
     private val nav: Navigation,
     private val sharedPrefs: SharedPrefs,
-    private val exchangeRatesLogic: ExchangeRatesLogic,
+    val exchangeRatesLogic: ExchangeRatesLogic,
     private val categoryCreator: CategoryCreator,
     private val accountCreator: AccountCreator,
     private val plannedPaymentsLogic: PlannedPaymentsLogic,

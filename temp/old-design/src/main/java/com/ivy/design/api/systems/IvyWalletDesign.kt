@@ -165,7 +165,7 @@ abstract class IvyWalletDesign : IvyDesign {
                 override val pure = TrueBlack
                 override val pureInverse = White
                 override val gray = Gray
-                override val medium = MediumBlack
+                override val medium = Gray
                 override val mediumInverse = MediumWhite
 
                 override val primary = Purple

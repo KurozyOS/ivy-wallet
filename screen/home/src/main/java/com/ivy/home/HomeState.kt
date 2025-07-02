@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.ivy.home
 
 import androidx.compose.runtime.Immutable
